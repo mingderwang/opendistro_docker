@@ -1,0 +1,21 @@
+authc:
+  basic_internal_auth_domain:
+  enabled: true
+  order: 0
+  http_authenticator:
+    type: "basic"
+    challenge: false
+  authentication_backend:
+    type: "internal"
+openid_auth_domain:
+  enabled: true
+  order: 1
+  http_authenticator:
+  type: openid
+  challenge: false
+  config:
+    openid_connect_url: https://sso.tokensandbox.io/auth/realms/master/.well-known/openid-configuration
+    subject_key: preferred_username
+    roles_key: roles
+  authentication_backend:
+    type: noop

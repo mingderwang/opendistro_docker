@@ -1,0 +1,77 @@
+version: '3'
+services:
+  odfe-node1:
+    image: amazon/opendistro-for-elasticsearch:0.9.0
+    container_name: odfe-node1
+    environment:
+      - cluster.name=odfe-cluster5
+      - bootstrap.memory_lock=true # along with the memlock settings below, disables swapping
+      - "ES_JAVA_OPTS=-Xms4g -Xmx4g" # minimum and maximum Java heap size, recommend setting both to 50% of system RAM
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - odfe-data1:/usr/share/elasticsearch/data
+      - ./internal_users.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/internal_users.yml
+      - ./config.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/config.yml
+    ports:
+      - 9200:9200
+      - 9600:9600 # required for Performance Analyzer
+    networks:
+      - odfe-net
+  odfe-node2:
+    image: amazon/opendistro-for-elasticsearch:0.9.0
+    container_name: odfe-node2
+    environment:
+      - cluster.name=odfe-cluster5
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
+      - discovery.zen.ping.unicast.hosts=odfe-node1
+      - node.master=false
+      - node.ingest=false
+      - node.data=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - odfe-data2:/usr/share/elasticsearch/data
+      - ./internal_users.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/internal_users.yml
+      - ./config.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/config.yml
+    networks:
+      - odfe-net
+    links:
+      - odfe-node1
+
+  kibana:
+    image: amazon/opendistro-for-elasticsearch-kibana:0.9.0
+    container_name: odfe-kibana
+    ports:
+      - 5601:5601
+    expose:
+      - "5601"
+    environment:
+      ELASTICSEARCH_URL: https://odfe-node1:9200
+      ELASTICSEARCH_HOSTS: https://odfe-node1:9200
+      ELASTICSEARCH_USERNAME: kibanaserver
+      ELASTICSEARCH_PASSWORD: Taipei101!
+      SERVER_NAME: sso.ethcards.co
+    networks:
+      - odfe-net
+      - test_4g_elk_elastic
+    links:
+      - odfe-node1
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+    labels:
+      - "traefik.frontend.rule=Host:sso.ethcards.co"
+
+volumes:
+  odfe-data1:
+  odfe-data2:
+
+networks:
+  odfe-net:
+  test_4g_elk_elastic: 
+    driver: external
